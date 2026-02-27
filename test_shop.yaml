@@ -1,0 +1,40 @@
+shop: Тестовый магазин
+categories:
+  - id: 1
+    name: Смартфоны
+  - id: 2
+    name: Аксессуары
+
+goods:
+  - id: 1001
+    category: 1
+    model: "iphone-13"
+    name: "iPhone 13"
+    price: 60000
+    price_rrc: 65000
+    quantity: 10
+    parameters:
+      "Цвет": "черный"
+      "Память": "128GB"
+  
+  - id: 1002
+    category: 1
+    model: "samsung-s21"
+    name: "Samsung S21"
+    price: 50000
+    price_rrc: 55000
+    quantity: 15
+    parameters:
+      "Цвет": "белый"
+      "Память": "256GB"
+  
+  - id: 2001
+    category: 2
+    model: "chehol-iphone"
+    name: "Чехол для iPhone"
+    price: 1000
+    price_rrc: 1500
+    quantity: 50
+    parameters:
+      "Цвет": "прозрачный"
+      "Материал": "силикон"

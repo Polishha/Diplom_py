@@ -1,0 +1,54 @@
+shop: Test Shop
+categories:
+  - id: 1
+    name: Смартфоны
+  - id: 2
+    name: Ноутбуки
+  - id: 3
+    name: Аксессуары
+
+goods:
+  - id: 101
+    category: 1
+    model: "iphone-14"
+    name: "iPhone 14 Pro Max"
+    price: 90000
+    price_rrc: 95000
+    quantity: 10
+    parameters:
+      "Цвет": "черный"
+      "Память": "256GB"
+  
+  - id: 102
+    category: 1
+    model: "samsung-s23"
+    name: "Samsung Galaxy S23 Ultra"
+    price: 80000
+    price_rrc: 85000
+    quantity: 15
+    parameters:
+      "Цвет": "зеленый"
+      "Память": "512GB"
+  
+  - id: 201
+    category: 2
+    model: "macbook-pro"
+    name: "MacBook Pro 14"
+    price: 150000
+    price_rrc: 160000
+    quantity: 5
+    parameters:
+      "Процессор": "M2 Pro"
+      "Память": "16GB"
+      "SSD": "512GB"
+  
+  - id: 301
+    category: 3
+    model: "airpods-pro"
+    name: "AirPods Pro"
+    price: 15000
+    price_rrc: 17000
+    quantity: 20
+    parameters:
+      "Цвет": "белый"
+      "Тип": "беспроводные"
