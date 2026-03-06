@@ -1,3 +1,8 @@
+"""
+Представления для работы с товарами, категориями и магазинами.
+Содержит функции для просмотра каталога, фильтрации и импорта товаров.
+"""
+
 from rest_framework import generics, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -13,6 +18,14 @@ from backend.serializers import ProductInfoSerializer, CategorySerializer, ShopS
 
 
 class CategoryView(generics.ListAPIView):
+    """
+    Получение списка категорий товаров.
+    
+    GET /api/v1/categories
+    
+    Returns:
+        200 OK: Список всех категорий в формате JSON
+    """
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [AllowAny]
@@ -20,6 +33,14 @@ class CategoryView(generics.ListAPIView):
 
 
 class ShopView(generics.ListAPIView):
+    """
+    Получение списка активных магазинов.
+    
+    GET /api/v1/shops
+    
+    Returns:
+        200 OK: Список магазинов, у которых state=True
+    """
     queryset = Shop.objects.filter(state=True)
     serializer_class = ShopSerializer
     permission_classes = [AllowAny]
@@ -27,6 +48,22 @@ class ShopView(generics.ListAPIView):
 
 
 class ProductInfoView(generics.ListAPIView):
+    """
+    Получение списка товаров с фильтрацией и поиском.
+    
+    GET /api/v1/products
+    
+    Query parameters:
+        - shop_id: ID магазина
+        - category_id: ID категории
+        - price_min: минимальная цена
+        - price_max: максимальная цена
+        - search: поиск по названию
+        - ordering: сортировка (price, -price, name, -name)
+    
+    Returns:
+        200 OK: Список товаров, удовлетворяющих условиям фильтрации
+    """
     serializer_class = ProductInfoSerializer
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -39,6 +76,12 @@ class ProductInfoView(generics.ListAPIView):
     ordering_fields = ['price', 'product__name']
 
     def get_queryset(self):
+        """
+        Получение queryset с оптимизацией запросов к БД.
+        
+        Returns:
+            QuerySet: Товары с предзагруженными связанными данными
+        """
         return ProductInfo.objects.filter(
             shop__state=True,
             quantity__gt=0
@@ -48,6 +91,18 @@ class ProductInfoView(generics.ListAPIView):
 
 
 class ProductDetailView(generics.RetrieveAPIView):
+    """
+    Получение детальной информации о конкретном товаре.
+    
+    GET /api/v1/products/{id}
+    
+    Args:
+        id: ID товара (ProductInfo)
+    
+    Returns:
+        200 OK: Детальная информация о товаре
+        404 Not Found: Товар не найден
+    """
     queryset = ProductInfo.objects.filter(
         shop__state=True,
         quantity__gt=0
@@ -59,9 +114,44 @@ class ProductDetailView(generics.RetrieveAPIView):
 
 
 class PartnerUpdate(APIView):
+    """
+    Обновление прайс-листа поставщика.
+    
+    Загружает YAML файл по URL или из загруженного файла,
+    обновляет информацию о товарах магазина.
+    
+    POST /api/v1/partner/update
+    
+    Request body (form-data):
+        - url: URL YAML файла с прайс-листом
+        - или file: загруженный YAML файл
+    
+    Returns:
+        200 OK: {
+            "Status": True,
+            "Message": "Прайс успешно обновлен"
+        }
+        400 Bad Request: {
+            "Status": False,
+            "Error": "Описание ошибки"
+        }
+        403 Forbidden: {
+            "Status": False,
+            "Error": "Только для магазинов"
+        }
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
+        """
+        Обработка загрузки прайс-листа.
+        
+        Args:
+            request: HTTP запрос с URL файла или самим файлом
+            
+        Returns:
+            Response: Результат операции
+        """
         if request.user.type != 'shop':
             return Response(
                 {'Status': False, 'Error': 'Только для магазинов'},
@@ -88,7 +178,8 @@ class PartnerUpdate(APIView):
                             name=data['shop'], 
                             user_id=request.user.id
                         )
-
+                        
+                        # Создание/обновление категорий
                         for category in data['categories']:
                             category_object, _ = Category.objects.get_or_create(
                                 id=category['id'], 
@@ -97,8 +188,10 @@ class PartnerUpdate(APIView):
                             category_object.shops.add(shop.id)
                             category_object.save()
                         
+                        # Удаляем старую информацию о товарах
                         ProductInfo.objects.filter(shop_id=shop.id).delete()
                         
+                        # Создаем новые товары
                         for item in data['goods']:
                             product, _ = Product.objects.get_or_create(
                                 name=item['name'], 
@@ -115,6 +208,7 @@ class PartnerUpdate(APIView):
                                 shop_id=shop.id
                             )
                             
+                            # Добавляем параметры товара
                             for name, value in item.get('parameters', {}).items():
                                 parameter_object, _ = Parameter.objects.get_or_create(name=name)
                                 ProductParameter.objects.create(

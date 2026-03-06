@@ -1,3 +1,8 @@
+"""
+Представления для работы с заказами покупателя.
+Содержит функции для просмотра заказов и подтверждения заказа.
+"""
+
 from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -10,10 +15,24 @@ from backend.serializers import OrderSerializer
 
 
 class OrderView(generics.ListAPIView):
+    """
+    Получение списка заказов пользователя.
+    
+    GET /api/v1/orders
+    
+    Returns:
+        200 OK: Список заказов пользователя (исключая корзину)
+    """
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        """
+        Получение заказов текущего пользователя.
+        
+        Returns:
+            QuerySet: Заказы пользователя, исключая корзину
+        """
         return Order.objects.filter(
             user=self.request.user
         ).exclude(
@@ -25,10 +44,29 @@ class OrderView(generics.ListAPIView):
 
 
 class OrderDetailView(generics.RetrieveAPIView):
+    """
+    Получение детальной информации о конкретном заказе.
+    
+    GET /api/v1/orders/{id}
+    
+    Args:
+        id: ID заказа
+    
+    Returns:
+        200 OK: Детальная информация о заказе
+        403 Forbidden: Попытка доступа к чужому заказу
+        404 Not Found: Заказ не найден
+    """
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        """
+        Получение queryset только для текущего пользователя.
+        
+        Returns:
+            QuerySet: Заказы текущего пользователя
+        """
         return Order.objects.filter(
             user=self.request.user
         ).prefetch_related(
@@ -41,6 +79,35 @@ class OrderDetailView(generics.RetrieveAPIView):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def confirm_order(request):
+    """
+    Подтверждение заказа.
+    
+    Переводит корзину в статус "new" (новый заказ) и отправляет
+    email с подтверждением покупателю.
+    
+    POST /api/v1/orders/confirm
+    
+    Request body:
+        {
+            "order_id": 1,
+            "contact_id": 1
+        }
+    
+    Returns:
+        200 OK: {
+            "Status": True,
+            "Message": "Заказ подтвержден",
+            "Order_id": 1
+        }
+        400 Bad Request: {
+            "Status": False,
+            "Error": "Описание ошибки"
+        }
+        404 Not Found: {
+            "Status": False,
+            "Error": "Корзина не найдена" или "Контакт не найден"
+        }
+    """
     order_id = request.data.get('order_id')
     contact_id = request.data.get('contact_id')
 
@@ -63,16 +130,19 @@ def confirm_order(request):
                 user=request.user
             )
             
+            # Проверяем, что в корзине есть товары
             if not order.ordered_items.exists():
                 return Response(
                     {'Status': False, 'Error': 'Корзина пуста'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
+            # Обновляем заказ
             order.contact = contact
             order.state = 'new'
             order.save()
             
+            # Отправляем email с подтверждением
             send_order_confirmation_email(request.user.email, order)
             
             return Response(
@@ -98,8 +168,18 @@ def confirm_order(request):
 
 
 def send_order_confirmation_email(user_email, order):
+    """
+    Отправка подтверждения заказа на email покупателя.
+    
+    Формирует письмо со списком товаров, общей суммой и адресом доставки.
+    
+    Args:
+        user_email (str): Email покупателя
+        order (Order): Объект заказа
+    """
     subject = f'Подтверждение заказа №{order.id}'
     
+    # Формируем список товаров
     items_list = []
     total_sum = 0
     for item in order.ordered_items.all():

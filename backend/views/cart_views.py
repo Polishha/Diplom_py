@@ -1,3 +1,8 @@
+"""
+Представления для работы с корзиной покупателя.
+Содержит функции для просмотра, добавления и удаления товаров из корзины.
+"""
+
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -9,7 +14,65 @@ from backend.models import Order, OrderItem, ProductInfo
 @api_view(['GET', 'POST', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def basket(request):
+    """
+    Работа с корзиной пользователя.
+    
+    GET - просмотр содержимого корзины
+    POST - добавление товаров в корзину
+    DELETE - удаление товара из корзины
+    
+    GET /api/v1/basket
+    
+    Returns:
+        200 OK: {
+            "id": 1,
+            "items": [
+                {
+                    "id": 1,
+                    "product_info_id": 1,
+                    "product_name": "Товар",
+                    "shop_name": "Магазин",
+                    "price": 1000,
+                    "quantity": 2,
+                    "sum": 2000
+                }
+            ],
+            "total_sum": 2000
+        }
+    
+    POST /api/v1/basket
+    Request body:
+        {
+            "items": [
+                {
+                    "product_info_id": 1,
+                    "quantity": 2
+                }
+            ]
+        }
+    
+    Returns:
+        200 OK: {"Status": True, "Message": "Товары добавлены в корзину"}
+        400 Bad Request: {"Status": False, "Error": "Описание ошибки"}
+    
+    DELETE /api/v1/basket
+    Request body:
+        {
+            "item_id": 1
+        }
+    
+    Returns:
+        200 OK: {"Status": True, "Message": "Товар удален из корзины"}
+        400 Bad Request: {"Status": False, "Error": "Не указан ID товара"}
+        404 Not Found: {"Status": False, "Error": "Товар не найден в корзине"}
+    """
     if request.method == 'GET':
+        """
+        Просмотр содержимого корзины.
+        
+        Returns:
+            Response: Информация о корзине или пустая корзина
+        """
         try:
             order = Order.objects.get(
                 user=request.user,
@@ -38,6 +101,15 @@ def basket(request):
             return Response({'items': [], 'total_sum': 0})
 
     elif request.method == 'POST':
+        """
+        Добавление товаров в корзину.
+        
+        Args:
+            request: HTTP запрос с массивом товаров для добавления
+            
+        Returns:
+            Response: Результат операции
+        """
         items_data = request.data.get('items')
         if not items_data:
             return Response(
@@ -76,6 +148,15 @@ def basket(request):
         return Response({'Status': True, 'Message': 'Товары добавлены в корзину'})
 
     elif request.method == 'DELETE':
+        """
+        Удаление товара из корзины.
+        
+        Args:
+            request: HTTP запрос с ID товара для удаления
+            
+        Returns:
+            Response: Результат операции
+        """
         item_id = request.data.get('item_id')
         if not item_id:
             return Response(
