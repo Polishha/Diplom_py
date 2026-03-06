@@ -1,0 +1,47 @@
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.exe
+*.dylib
+
+# Database
+db.sqlite3
+*.sqlite3
+
+# Django
+*.log
+local_settings.py
+
+# Virtual environment
+venv/
+env/
+ENV/
+myenv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Uploaded files
+media/
+staticfiles/
+
+# Project specific
+*.yaml
+!shop_data.yaml
